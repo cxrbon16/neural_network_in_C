@@ -4,8 +4,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-
-// Define Tensor structure and auxiliary functions here (e.g., initialization, free, etc.)
 #include <math.h>
 
 double compute_mse(double yHat, double y) {
@@ -27,20 +25,6 @@ double relu(double x) {
 // Mock activation derivative
 double relu_derivative(double x) {
     return x > 0 ? 1 : 0;
-}
-
-// Helper to initialize a tensor
-Tensor* createTensor(double* elements, int* shape, int numShape, int numElements) {
-    Tensor* tensor = malloc(sizeof(Tensor));
-    tensor->elements = malloc(sizeof(double) * numElements);
-    memcpy(tensor->elements, elements, sizeof(double) * numElements);
-
-    tensor->shape = malloc(sizeof(int) * numShape);
-    memcpy(tensor->shape, shape, sizeof(int) * numShape);
-
-    tensor->numShape = numShape;
-    tensor->numElements = numElements;
-    return tensor;
 }
 
 
@@ -93,11 +77,7 @@ void testBackwardLayer() {
 }
 
 void testMLPBackward(){
-    int inputShape[] = {1, 20};
-    int outputShape[] = {1, 1};
-    Tensor* inputTensor = randomTensor(inputShape, 2, inputShape[0] * inputShape[1], NULL);
-    Tensor* outputTensor = randomTensor(outputShape, 2, 1, NULL);
-
+    /*
     Layer* layer = initializeLayer(30, 20, NULL, tanh, tanh_derivative);
     Layer* layerSecond = initializeLayer(1, 30, NULL, tanh, tanh_derivative);
 
@@ -113,7 +93,10 @@ void testMLPBackward(){
     computeGradients(mlp, inputTensor, outputTensor);
     printTensor(layerSecond->gradientTensor);
 
-    for(int i = 0; i < 100; i++){
+    for(int j = 0; j < mlp->numLayers; j++)
+        zeroGradients(mlp->layers[j]);
+
+    for(int i = 0; i < 1000; i++){
         computeGradients(mlp, inputTensor, outputTensor);
         for(int j = 0; j < mlp->numLayers; j++){
             Layer* currLayer = mlp->layers[j];
@@ -125,14 +108,24 @@ void testMLPBackward(){
 
     computeGradients(mlp, inputTensor, outputTensor);
     printf("\n after gd");
-    printTensor(layer->gradientTensor);
+    printTensor(layerSecond->gradientTensor);
+    */
+}
+void FULL_TEST(){
+    dataPoint** trainData;
+    trainData = readInput(20000, 785, 4, ".//data//train.txt");
+    printTensor(trainData[2500]->X);
+    printTensor(trainData[15000]->Y);
+
+    // X -> reLU -> tanh -> softmax
+    // (1, 785) x (785, 50) x (50, 10) -> 10 'logits' 
+    // softmax(logits)
+    // [a1, a2 .. a10] that Sum(a) = 1
 }
 
 int main(){
     srand(time(NULL));
     //testBackwardLayer();
-    testMLPBackward();
-    //int shape[] = {10, 10};
-    //Tensor* newTensor = randomTensor(shape, 2, 100, NULL);
-    //printTensor(newTensor);
+    //testMLPBackward();
+    FULL_TEST();
 }

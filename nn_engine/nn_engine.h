@@ -10,10 +10,9 @@
 #define NN_ENGINE_H
 
 typedef struct {
-  Tensor* X;
-  Tensor* Y;  // One-hoted labels.
-} dataSet;
-
+    Tensor* X; // Input tensor
+    Tensor* Y; // One-hot encoded label tensor
+} dataPoint;
 
 typedef struct {
   int numNodes;
@@ -33,6 +32,7 @@ typedef struct {
   double (*costFunction)(double, double);
   double (*costDerivativeFunction)(double, double);
 } MLP;
+
 
 Layer* initializeLayer(int numNodes, int inputDim, double (*randomFunction)(double, double), double (*activationFunction)(double), double (*activationDerivativeFunction)(double));
 /*
@@ -75,6 +75,8 @@ Tensor* forwardMLP(MLP* mlp, Tensor* inputTensor);
       Tensor*: Sonuç tensörü.
 */
 
+dataPoint** readInput(int numPoints, int numParameters, int numClasses, char* filePath);
+Tensor* createTensor(double* elements, int* shape, int numShape, int numElements);
 void computeGradients(MLP* mlp, Tensor* inputTensor, Tensor* targetTensor);
 Tensor* backwardLayer(Layer* layer, Tensor* inputTensor, Tensor* outputGrad);
 void backwardMLP(MLP* mlp, Tensor* input, Tensor* output);

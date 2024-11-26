@@ -291,3 +291,16 @@ Tensor* tensorTensorElementWiseMUL(Tensor* tensor, Tensor* otherTensor){
 
   return resultTensor;
 }
+
+Tensor* createTensor(double* elements, int* shape, int numShape, int numElements) {
+    Tensor* tensor = malloc(sizeof(Tensor));
+    tensor->elements = malloc(sizeof(double) * numElements);
+    memcpy(tensor->elements, elements, sizeof(double) * numElements);
+
+    tensor->shape = malloc(sizeof(int) * numShape);
+    memcpy(tensor->shape, shape, sizeof(int) * numShape);
+
+    tensor->numShape = numShape;
+    tensor->numElements = numElements;
+    return tensor;
+}

@@ -10,6 +10,7 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct {
   double* elements;
@@ -158,6 +159,6 @@ void freeTensor(Tensor* tensor);
 Tensor* copyTensor(Tensor* tensor);
 void printTensor(Tensor* tensor);
 Tensor* tensorTensorElementWiseMUL(Tensor* tensor, Tensor* otherTensor);
-
+Tensor* createTensor(double* elements, int* shape, int numShape, int numElements);
 #endif
 

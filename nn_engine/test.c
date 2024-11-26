@@ -12,8 +12,8 @@ double tanh_x(double x){
 }
 
 int main(){
-    Layer* layer1 = initializeLayer(6, 100, NULL, tanh_x);
-    Layer* layer2 = initializeLayer(2, 6, NULL, tanh_x);
+    Layer* layer1 = initializeLayer(6, 100, NULL, tanh_x, NULL);
+    Layer* layer2 = initializeLayer(2, 6, NULL, tanh_x, NULL);
     int shapeInput[] = {5, 100};
     Tensor* inputTensor = randomTensor(shapeInput, 2, 500, NULL);
 
