@@ -29,8 +29,8 @@ typedef struct {
   Layer** layers; 
   Tensor** cacheActivations;
   // these 2 lines below can be changed. "parameters".
-  double (*costFunction)(double, double);
-  double (*costDerivativeFunction)(double, double);
+  double (*costFunction)(Tensor*, Tensor*);
+  Tensor* (*costDerivativeFunction)(Tensor* , Tensor*);
 } MLP;
 
 
@@ -80,7 +80,7 @@ Tensor* createTensor(double* elements, int* shape, int numShape, int numElements
 void computeGradients(MLP* mlp, Tensor* inputTensor, Tensor* targetTensor);
 Tensor* backwardLayer(Layer* layer, Tensor* inputTensor, Tensor* outputGrad);
 void backwardMLP(MLP* mlp, Tensor* input, Tensor* output);
-Tensor* computeLossGradient(Tensor* yhat, Tensor* y, double (*costDerivativeFunction)(double, double));
+Tensor* computeLossGradient(Tensor* yhat, Tensor* y, Tensor* (*costDerivativeFunction)(Tensor*, Tensor*));
 void zeroGradients(Layer* layer);
 #endif
 

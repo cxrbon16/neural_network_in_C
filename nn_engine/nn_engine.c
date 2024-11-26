@@ -18,8 +18,10 @@ Layer* initializeLayer(int numNodes, int inputDim, double (*randomFunc)(double, 
   shape[0] = inputDim;shape[1] = numNodes; 
 
   Tensor* tensor = randomTensor(shape, 2, shape[0] * shape[1], NULL);
+  Tensor* gradTensor = initializeTensor(shape, 2, shape[0] * shape[1]);
   free(shape);
   resultLayer->layerTensor = tensor;
+  resultLayer->gradientTensor = gradTensor;
   resultLayer->activationFunction = activationFunction;
   resultLayer->activationDerivativeFunction = activationDerivativeFunction;
 
@@ -65,22 +67,21 @@ Tensor* backwardLayer(Layer* layer, Tensor* inputTensor, Tensor* outputGrad){
   // DLoss/DF'in bize verildiğini varsayarsak, Tensor* outputGrad
   // DLoss/DlayerTensor'ü arıyoruz.
   // DLoss/DlayerTensor = DLoss/DF * DF/DpreActivation * DpreActivation/DlayerTensor
+  Tensor* toFree;
   Tensor* preActivation = tensorTensorMUL(inputTensor, layer->layerTensor);
-
   applyFuncToTensor(preActivation, layer->activationDerivativeFunction);
 
   Tensor* delta = tensorTensorElementWiseMUL(outputGrad, preActivation);
+  freeTensor(preActivation);
 
-  
   transposeTensor(inputTensor);
   Tensor* gradientTensor = tensorTensorMUL(inputTensor, delta);
   transposeTensor(inputTensor);
+  toFree = layer->gradientTensor; 
+  layer->gradientTensor = addTensors(layer->gradientTensor, gradientTensor);
+  freeTensor(gradientTensor);
+  freeTensor(toFree);
 
-  if(layer->gradientTensor != NULL){
-    layer->gradientTensor = addTensors(layer->gradientTensor, gradientTensor);
-  }else{
-    layer->gradientTensor = gradientTensor;
-  }
   transposeTensor(layer->layerTensor);
   Tensor* tensorInputGradient  = tensorTensorMUL(delta, layer->layerTensor);
   transposeTensor(layer->layerTensor);
@@ -91,23 +92,18 @@ Tensor* backwardLayer(Layer* layer, Tensor* inputTensor, Tensor* outputGrad){
 
 
 void computeGradients(MLP* mlp, Tensor* inputTensor, Tensor* targetTensor){
-
   Tensor* output = forwardMLP(mlp, inputTensor);
-
   Tensor* lossGradient = computeLossGradient(output, targetTensor, mlp->costDerivativeFunction);
   Tensor* tmpGrad = lossGradient;
   for(int i = mlp->numLayers - 1; i >= 0; i--){
     Tensor* prevInput = (i == 0) ? inputTensor : mlp->cacheActivations[i-1];
+
     tmpGrad = backwardLayer(mlp->layers[i], prevInput, tmpGrad);
   }
 }
 
-Tensor* computeLossGradient(Tensor* yhat, Tensor* y, double (*costDerivativeFunction)(double, double)){
-  Tensor* gradient = copyTensor(yhat);
-  for(int i = 0; i < yhat->numElements; i++){
-    gradient->elements[i] = costDerivativeFunction(yhat->elements[i], y->elements[i]);
-  }
-  return gradient;
+Tensor* computeLossGradient(Tensor* yhat, Tensor* y, Tensor* (*costDerivativeFunction)(Tensor*, Tensor*)){
+  return costDerivativeFunction(yhat, y);
 }
 
 void zeroGradients(Layer* layer){

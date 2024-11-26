@@ -177,7 +177,13 @@ Tensor* addTensors(Tensor* tensor, Tensor* otherTensor){
   }
   for(int i = 0; i < tensor->numShape; i++){
     if(tensor->shape[i] != otherTensor->shape[i]){
-      printf("/n Tensors shape is different!");
+      printf("%d", i);
+      printf("%d", tensor->shape[i]);
+      printf("%d", otherTensor->shape[i]);
+      printf("Tensor1 shape: [%d, %d]: Tensor2 shape: [%d, %d]\n", tensor->shape[0], tensor->shape[1], otherTensor->shape[0], otherTensor->shape[1]);
+      printTensor(tensor);
+      printTensor(otherTensor);
+      printf("\n Tensors shape is different!");
       return NULL;
     }
   }

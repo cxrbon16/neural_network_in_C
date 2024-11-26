@@ -114,7 +114,7 @@ void scalarTensorMUL(Tensor* tensor, double scalar);
     Bu fonksiyon, tensor'deki tüm elemanları bir scalar ile çarpar.
     @params: 
       Tensor* tensor: Elemenlarını çarpmak istediğimiz tensor.
-      int scalar: çarpma katsayısı.
+      double scalar: çarpma katsayısı.
 
     @output:
       --

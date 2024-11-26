@@ -46,7 +46,7 @@ dataPoint* readInputHelperFunc(char* buffer, int numClasses, int numParameters) 
     }
 
     for (int j = 0; j < numClasses; j++) {
-        onehotY[j] = (label == j) ? 1.0 : -1.0;
+        onehotY[j] = (label == j) ? 1.0 : 0.0;
     }
     int labelShape[2] = {1, numClasses};
     Tensor* labelTensor = createTensor(onehotY, labelShape, 2, numClasses);
