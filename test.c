@@ -14,22 +14,32 @@ Tensor* softmax(Tensor* logits){
     return resultTensor;
 }
 
-double softmaxLoss(Tensor* logits, Tensor* targetLabels){
-    double loss = 0;
+double softmaxLoss(Tensor* logits, Tensor* targetLabels) {
+    const double epsilon = 1e-15;
     Tensor* yhat = softmax(logits);
-    for(int i = 0; i < logits->numElements; i++){
-        loss -= targetLabels->elements[i] * log(yhat->elements[i]);
+    double loss = 0;
+    
+    for(int i = 0; i < logits->numElements; i++) {
+        // Clip probability to prevent log(0)
+        double clipped_prob = fmax(yhat->elements[i], epsilon);
+        loss -= targetLabels->elements[i] * log(clipped_prob);
     }
+    
     return loss;
 }
+
 Tensor* softmaxDerivative(Tensor* logits, Tensor* y){
     Tensor* yhat = softmax(logits);
-    scalarTensorMUL(y, -1.0); // this is a inplace function so we need to revert it after usage.
-    Tensor* softmaxDerivative = addTensors(yhat,y);
-    scalarTensorMUL(y, -1.0);
-    return softmaxDerivative;
-
+    
+    Tensor* derivative = copyTensor(yhat);
+    
+    for(int i = 0; i < derivative->numElements; i++) {
+        derivative->elements[i] -= y->elements[i];
+    }
+    
+    return derivative;
 }
+
 double tanh_derivative(double x){
     return 1 - tanh(x) * tanh(x);
 }
@@ -49,11 +59,11 @@ double randomFunc(double x, double y){
 int main(){
     srand(time(NULL));
     dataPoint** trainData;
-    int trainSize = 500;
-    trainData = readInput(trainSize, 785, 10, "data/train_fashion.txt");
+    int trainSize = 5000; 
+    trainData = readInput(trainSize, 785, 4, "data/train.txt");
 
-    Layer* firstHiddenLayer = initializeLayer(1200, 785, NULL, relu, relu_derivative);
-    Layer* secondHiddenLayer = initializeLayer(10, 1200, NULL, relu, relu_derivative);
+    Layer* firstHiddenLayer = initializeLayer(40, 785, NULL, tanh, tanh_derivative);
+    Layer* secondHiddentLayer = initializeLayer(4, 40, NULL, tanh, tanh_derivative);
 
     MLP* model = malloc(sizeof(MLP));
     model->cacheActivations = malloc(sizeof(Tensor*) * 2);
@@ -61,34 +71,33 @@ int main(){
     model->costDerivativeFunction = softmaxDerivative;
     model->numLayers = 2;
     model->layers = malloc(sizeof(Layer*) * 2);
-    model->layers[0] = firstHiddenLayer; model->layers[1] = secondHiddenLayer;
+    model->layers[0] = firstHiddenLayer; model->layers[1] = secondHiddentLayer;
     
     double totalLoss = 0.0;
-    int epoch = 100;
-    double alpha = 0.005;
+    int epoch = 1000;
+    double alpha = 0.05;
     Tensor* toFree;
+
     for(int iterateNum = 0; iterateNum < epoch; iterateNum++){
         totalLoss = 0.0;
         for(int i = 0; i < trainSize; i++){
             computeGradients(model, trainData[i]->X, trainData[i]->Y);
             totalLoss += softmaxLoss(forwardMLP(model, trainData[i]->X), trainData[i]->Y);
-        }
+    }
+    
         for(int layerNo = 0; layerNo < model->numLayers; layerNo++){
             Layer* layer = model->layers[layerNo];
             scalarTensorMUL(layer->gradientTensor, -1.0/trainSize);
             scalarTensorMUL(layer->gradientTensor, alpha);
-            toFree = layer->layerTensor;
+            
+            Tensor* toFree = layer->layerTensor;
             layer->layerTensor = addTensors(layer->layerTensor, layer->gradientTensor);
             freeTensor(toFree);
             zeroGradients(layer);
         }
+    
         totalLoss = (double) totalLoss * (1.0/trainSize);
-        printf("cost: %f\n", totalLoss);
+        printf("Epoch %d - Cost: %f\n", iterateNum, totalLoss);
     }
-    for(int i = 0; i < 10; i++){
-        printf("predict: \n");
-        printTensor(softmax(forwardMLP(model, trainData[i]->X)));
-        printf("target: \n");
-        printTensor(trainData[i]->Y);
-    }
+
 }

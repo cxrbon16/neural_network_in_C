@@ -6,11 +6,10 @@
 
 #include "tensor_engine.h"
 
-double defaultRandomElementWise(double lowerBound, double higherBound){
-  double range = higherBound - lowerBound;
-  double div = RAND_MAX / range;
-  return lowerBound + rand() / div;
+double defaultRandomElementWise(double x, double y){ // XAVIER INITIALIZATION
+  return ((rand() / (double)RAND_MAX) - 0.5) * sqrt(2.0 / (x + y)); 
 }
+
 
 Tensor* initializeTensor(int* shape, int numShape, int numElements){
   Tensor* resultTensor = malloc(sizeof(Tensor));
@@ -41,7 +40,7 @@ Tensor* randomTensor(int* shape, int numShape, int numElements, double (*randomF
   }
 
   for(int place = 0; place < numElements; place++){
-    elements[place] = randomFunc(-1, 1);
+    elements[place] = randomFunc(shape[0], shape[1]);
   }
 
   int* copyShape = malloc(numShape * sizeof(int));

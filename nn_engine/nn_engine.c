@@ -6,7 +6,26 @@
 
 #include "nn_engine.h"
 #include "../tensor_engine/tensor_engine.h"
+#include <math.h>
 
+void clipGradients(Tensor* gradientTensor, double maxNorm) {
+    // Compute gradient norm (L2 norm)
+    double gradientNorm = 0.0;
+    for (int i = 0; i < gradientTensor->numElements; i++) {
+        gradientNorm += gradientTensor->elements[i] * gradientTensor->elements[i];
+    }
+    gradientNorm = sqrt(gradientNorm);
+
+    // If gradient norm exceeds maxNorm, scale down
+    if (gradientNorm > maxNorm) {
+        double scaleFactor = maxNorm / gradientNorm;
+        
+        // Scale down the gradient
+        for (int i = 0; i < gradientTensor->numElements; i++) {
+            gradientTensor->elements[i] *= scaleFactor;
+        }
+    }
+}
 
 Layer* initializeLayer(int numNodes, int inputDim, double (*randomFunc)(double, double), double (*activationFunction)(double), double (*activationDerivativeFunction)(double)){
   Layer* resultLayer = malloc(sizeof(Layer));
@@ -37,29 +56,26 @@ Tensor* forwardLayer(Layer *layer, Tensor *inputTensor){
   }
   Tensor* resultTensor;
   resultTensor = tensorTensorMUL(inputTensor, layer->layerTensor);
-
   applyFuncToTensor(resultTensor, layer->activationFunction);
   return resultTensor;
 }
 
 
-Tensor* forwardMLP(MLP* mlp, Tensor* inputTensor){
-  Tensor* currentTensor = inputTensor;
-  for (int i = 0; i < mlp->numLayers; i++) {
-    Tensor* nextTensor = forwardLayer(mlp->layers[i], currentTensor);
+Tensor* forwardMLP(MLP* mlp, Tensor* inputTensor) {
+    Tensor* currentTensor = inputTensor;
+    for (int i = 0; i < mlp->numLayers; i++) {
+        Tensor* nextTensor = forwardLayer(mlp->layers[i], currentTensor);
 
-    free(mlp->cacheActivations[i]);
-    mlp->cacheActivations[i] = nextTensor;
-    /*
-    if (currentTensor != inputTensor) {
-      free(mlp->cacheActivations[i-1]);
-      mlp->cacheActivations[i-1] = nextTensor;
+        if (mlp->cacheActivations[i]) {
+            freeTensor(mlp->cacheActivations[i]); // Free old cache
+        }
+        mlp->cacheActivations[i] = nextTensor; // Save new activation
+
+        currentTensor = nextTensor;
     }
-  */
-    currentTensor = nextTensor;
-  }
-  return currentTensor; 
+    return currentTensor; 
 }
+
 
 Tensor* backwardLayer(Layer* layer, Tensor* inputTensor, Tensor* outputGrad){
   // preActivation = tensorTensorMUL(inputTensor, layer->layerTensor) olsun.
@@ -67,25 +83,34 @@ Tensor* backwardLayer(Layer* layer, Tensor* inputTensor, Tensor* outputGrad){
   // DLoss/DF'in bize verildiğini varsayarsak, Tensor* outputGrad
   // DLoss/DlayerTensor'ü arıyoruz.
   // DLoss/DlayerTensor = DLoss/DF * DF/DpreActivation * DpreActivation/DlayerTensor
+  //gradientTensor = tensorTensorElementWiseMUL(gradientTensor, layer->layerTensor);
+
   Tensor* toFree;
   Tensor* preActivation = tensorTensorMUL(inputTensor, layer->layerTensor);
-  applyFuncToTensor(preActivation, layer->activationDerivativeFunction);
+  Tensor* delta = copyTensor(outputGrad);
+  Tensor* activationDerivative = copyTensor(preActivation);
+  applyFuncToTensor(activationDerivative, layer->activationDerivativeFunction);
 
-  Tensor* delta = tensorTensorElementWiseMUL(outputGrad, preActivation);
-  freeTensor(preActivation);
+  Tensor* scaledDelta = tensorTensorElementWiseMUL(delta, activationDerivative);
 
   transposeTensor(inputTensor);
-  Tensor* gradientTensor = tensorTensorMUL(inputTensor, delta);
+  Tensor* gradientTensor = tensorTensorMUL(inputTensor, scaledDelta);
   transposeTensor(inputTensor);
+
   toFree = layer->gradientTensor; 
   layer->gradientTensor = addTensors(layer->gradientTensor, gradientTensor);
   freeTensor(gradientTensor);
   freeTensor(toFree);
 
   transposeTensor(layer->layerTensor);
-  Tensor* tensorInputGradient  = tensorTensorMUL(delta, layer->layerTensor);
+  Tensor* tensorInputGradient  = tensorTensorMUL(scaledDelta, layer->layerTensor);
   transposeTensor(layer->layerTensor);
+
   freeTensor(delta);
+  freeTensor(preActivation);
+  freeTensor(activationDerivative);
+  freeTensor(scaledDelta);
+
   return tensorInputGradient;
 }
 
@@ -100,6 +125,7 @@ void computeGradients(MLP* mlp, Tensor* inputTensor, Tensor* targetTensor){
     Tensor* prevInput = (i == 0) ? inputTensor : mlp->cacheActivations[i-1];
     toFree = tmpGrad;
     tmpGrad = backwardLayer(mlp->layers[i], prevInput, tmpGrad);
+    //clipGradients(mlp->layers[i]->gradientTensor, 1.0);
     freeTensor(toFree);
   }
   freeTensor(tmpGrad);

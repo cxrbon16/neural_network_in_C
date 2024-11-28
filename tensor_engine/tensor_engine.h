@@ -7,6 +7,7 @@
 #ifndef TENSOR_ENGINE_H
 #define TENSOR_ENGINE_H
 
+#include <math.h>
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>

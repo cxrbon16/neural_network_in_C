@@ -145,19 +145,18 @@ void FULL_TEST(){
     trainData = readInput(trainSize, 785, 10, ".//data//train.txt");
 
     Layer* firstHiddenLayer = initializeLayer(15, 785, NULL, tanh, tanh_derivative);
-    Layer* secondHiddenLayer = initializeLayer(10, 15, NULL, tanh, tanh_derivative);
 
     MLP* model = malloc(sizeof(MLP));
-    model->cacheActivations = malloc(sizeof(Tensor*) * 2);
+    model->cacheActivations = malloc(sizeof(Tensor*) * 1);
     model->costFunction = softmaxLoss;
     model->costDerivativeFunction = softmaxDerivative;
-    model->numLayers = 2;
-    model->layers = malloc(sizeof(Layer*) * 2);
-    model->layers[0] = firstHiddenLayer; model->layers[1] = secondHiddenLayer;
+    model->numLayers = 1;
+    model->layers = malloc(sizeof(Layer*) * 1);
+    model->layers[0] = firstHiddenLayer;
     
     double totalLoss = 0.0;
     int epoch = 100;
-    double alpha = 0.05;
+    double alpha = 0.01;
     Tensor* toFree;
     for(int iterateNum = 0; iterateNum < epoch; iterateNum++){
         totalLoss = 0.0;

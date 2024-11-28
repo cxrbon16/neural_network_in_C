@@ -200,7 +200,7 @@ int main() {
   double preActivationWX;
   double* Y = (double*) malloc(NUM_CLASSES * sizeof(double));
   double tanhDiffVal;
-  int epoch = 10;
+  int epoch = 50;
   double Loss = 0;
   for (int iter_num = 0; iter_num < epoch; iter_num++){
 
@@ -222,7 +222,7 @@ int main() {
           Loss += pow((Y[j] - dataPoints[i]->Y[j]), 2);
         }
     }
-    double alpha = 0.1;
+    double alpha = 0.01;
     for (int i = 0; i < NUM_CLASSES; i++){
       for(int j = 0; j < INPUT_SIZE; j++){
         weights[i][j] = weights[i][j] - alpha * gradients[i][j] ;
