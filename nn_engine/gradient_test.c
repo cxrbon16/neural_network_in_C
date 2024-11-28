@@ -141,11 +141,11 @@ void testMLPBackward(){
 }
 void FULL_TEST(){
     dataPoint** trainData;
-    int trainSize = 100;
-    trainData = readInput(trainSize, 785, 4, ".//data//train.txt");
+    int trainSize = 1000;
+    trainData = readInput(trainSize, 785, 10, ".//data//train.txt");
 
-    Layer* firstHiddenLayer = initializeLayer(50, 785, NULL, tanh, tanh_derivative);
-    Layer* secondHiddenLayer = initializeLayer(4, 50, NULL, tanh, tanh_derivative);
+    Layer* firstHiddenLayer = initializeLayer(15, 785, NULL, tanh, tanh_derivative);
+    Layer* secondHiddenLayer = initializeLayer(10, 15, NULL, tanh, tanh_derivative);
 
     MLP* model = malloc(sizeof(MLP));
     model->cacheActivations = malloc(sizeof(Tensor*) * 2);
@@ -156,7 +156,7 @@ void FULL_TEST(){
     model->layers[0] = firstHiddenLayer; model->layers[1] = secondHiddenLayer;
     
     double totalLoss = 0.0;
-    int epoch = 5;
+    int epoch = 100;
     double alpha = 0.05;
     Tensor* toFree;
     for(int iterateNum = 0; iterateNum < epoch; iterateNum++){

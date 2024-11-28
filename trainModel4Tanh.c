@@ -200,7 +200,7 @@ int main() {
   double preActivationWX;
   double* Y = (double*) malloc(NUM_CLASSES * sizeof(double));
   double tanhDiffVal;
-  int epoch = 100;
+  int epoch = 10;
   double Loss = 0;
   for (int iter_num = 0; iter_num < epoch; iter_num++){
 
@@ -238,12 +238,12 @@ int main() {
   char* filePathTest = "data/test.txt";
   double *Yhat;
   dataPoint** dataPointsTest = readInput(testSize, filePathTest);
+  
 
   for(int i = 0; i < testSize; i++){
     Yhat = forwardProp(dataPointsTest[i], weights);
     for(int j = 0; j < NUM_CLASSES; j++){
       printf("Yhat[%d]: %f Y[%d]: %d\n", j, Yhat[j], j,  dataPointsTest[i]->Y[j]);
-      //printf("%i\n", dataPointsTest[i]->Y[j]);
     }
   }
   return 0;

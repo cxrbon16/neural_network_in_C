@@ -95,11 +95,14 @@ void computeGradients(MLP* mlp, Tensor* inputTensor, Tensor* targetTensor){
   Tensor* output = forwardMLP(mlp, inputTensor);
   Tensor* lossGradient = computeLossGradient(output, targetTensor, mlp->costDerivativeFunction);
   Tensor* tmpGrad = lossGradient;
+  Tensor* toFree;
   for(int i = mlp->numLayers - 1; i >= 0; i--){
     Tensor* prevInput = (i == 0) ? inputTensor : mlp->cacheActivations[i-1];
-
+    toFree = tmpGrad;
     tmpGrad = backwardLayer(mlp->layers[i], prevInput, tmpGrad);
+    freeTensor(toFree);
   }
+  freeTensor(tmpGrad);
 }
 
 Tensor* computeLossGradient(Tensor* yhat, Tensor* y, Tensor* (*costDerivativeFunction)(Tensor*, Tensor*)){
