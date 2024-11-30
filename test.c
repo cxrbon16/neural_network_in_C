@@ -68,6 +68,33 @@ double relu_derivative(double x) {
     return x > 0 ? 1 : 0.1;
 }
 
+double computeAccuracy(MLP* model, dataPoint** testData, int testSize){
+    Tensor* logits;
+    double max;
+    int maxIndex = 0;
+    int correct = 0;
+    int incorrect = 0;
+    for(int i = 0; i < testSize; i++){
+        logits = forwardMLP(model, testData[i]->X);
+        max = logits->elements[0];
+        maxIndex = 0;
+        for(int Index = 0; Index < logits->numElements; Index++){
+            if (logits->elements[Index] > max){
+                max = logits->elements[Index];
+                maxIndex = Index;
+            }
+        } 
+        for(int j = 0; j < testData[i]->Y->numElements; j++){
+            if(testData[i]->Y->elements[j] == 1.0 && maxIndex == j){
+               correct += 1; 
+               continue;
+            }
+        }
+        incorrect += 1;
+    }
+    return (double) correct * 100 / (double) (testSize);
+}
+
 double calculateValidationLoss(dataPoint** testData, MLP* model, double(*lossFunction) (Tensor*, Tensor*), int testSize){
     double totalLoss = 0.0;
     for (int index = 0; index < testSize; index++){
@@ -93,35 +120,34 @@ double computeGradientsForSgd(MLP* model, dataPoint** trainData, int trainSize){
     return softmaxLoss(forwardMLP(model, trainData[index]->X), trainData[index]->Y);
 }
 
+
 int main(){
     srand(time(NULL));
     dataPoint** trainData;
     dataPoint** testData;
-    int trainSize = 5000; 
-    int testSize = 1000;
-    trainData = readInput(trainSize, 785, 10, "data/train_fashion.txt");
-    testData = readInput(testSize, 785, 10, "data/test_fashion.txt");
+    int trainSize = 60000; 
+    int testSize = 10000;
+    trainData = readInput(trainSize, 785, 10, "data/train.txt");
+    testData = readInput(testSize, 785, 10, "data/test.txt");
 
 
-    Layer* firstHiddenLayer = initializeLayer(1024, 785, NULL, relu, relu_derivative);
-    Layer* secondHiddenLayer = initializeLayer(128, 1024, NULL, relu, relu_derivative);
-    Layer* thirdHiddenLayer  = initializeLayer(10, 128, NULL, relu, relu_derivative);
+    Layer* firstHiddenLayer = initializeLayer(64, 785, NULL, tanh, tanh_derivative);
+    Layer* secondHiddenLayer = initializeLayer(10, 64, NULL, tanh, tanh_derivative);
 
     for ( int i = 0; i < firstHiddenLayer->layerTensor->numElements; i++){
         printf("%.3f\n", firstHiddenLayer->layerTensor->elements[i]);;
     }
     MLP* model = malloc(sizeof(MLP));
-    model->cacheActivations = malloc(sizeof(Tensor*) * 3);
+    model->cacheActivations = malloc(sizeof(Tensor*) * 2);
     model->costFunction = softmaxLoss;
     model->costDerivativeFunction = softmaxDerivative;
-    model->numLayers = 3;
-    model->layers = malloc(sizeof(Layer*) * 3);
+    model->numLayers = 2;
+    model->layers = malloc(sizeof(Layer*) * 2);
     model->layers[0] = firstHiddenLayer;
     model->layers[1] = secondHiddenLayer;
-    model->layers[2] = thirdHiddenLayer;
     
     double totalLoss;
-    int epoch = 20;
+    int epoch = 4;
     double alpha = 0.005;
     Tensor* toFree;
 
@@ -135,7 +161,7 @@ int main(){
    // printf("\n Hidden gradients: \n");
    // computeGradients(model, trainData[0]->X, trainData[0]->Y);
    // printTensor(firstHiddenLayer->gradientTensor);
-    for(int iterateNum = 0; iterateNum < epoch * trainSize; iterateNum++){
+    for(int iterateNum = 0; iterateNum < epoch * trainSize + 1; iterateNum++){
         totalLoss = computeGradientsForSgd(model, trainData, trainSize);
 
         for(int layerNo = 0; layerNo < model->numLayers; layerNo++){
@@ -152,13 +178,15 @@ int main(){
             zeroGradients(layer);
         }
 
-        if(iterateNum % 1  == 0){
+        if(iterateNum % 10000  == 0){
             totalLoss = (double) totalLoss * (1.0);
-            printf("Epoch %d - Cost: %f - Valid. Loss: %f\n", iterateNum, totalLoss, calculateValidationLoss(testData, model, softmaxLoss, testSize));
-
+            printf("Epoch %d - Cost: %f - Valid. Loss: %f\n Accuracy: %f\n",
+             iterateNum / trainSize, totalLoss, calculateValidationLoss(testData, model, softmaxLoss, testSize), computeAccuracy(model, testData, testSize));
+            /*
             Tensor* output = forwardMLP(model, trainData[iterateNum/trainSize]->X);
             output = softmax(output);
             printTensor(output);
+            */
         }
     }
 }
