@@ -7,7 +7,9 @@
 #include "tensor_engine.h"
 
 double defaultRandomElementWise(double x, double y){ // XAVIER INITIALIZATION
-  return ((rand() / (double)RAND_MAX) - 0.5) * sqrt(2.0 / (x + y)); 
+  double bound = sqrt(6.0f / (x + y));
+  double tmp = (float)rand() / RAND_MAX * 2 * bound - bound;
+  return tmp * 3;
 }
 
 
@@ -186,8 +188,8 @@ Tensor* addTensors(Tensor* tensor, Tensor* otherTensor){
       return NULL;
     }
   }
-  int* copyShape = malloc(tensor->numElements * sizeof(int));
-  for(int i = 0; i < tensor->numElements; i++)
+  int* copyShape = malloc(tensor->numShape * sizeof(int));
+  for(int i = 0; i < tensor->numShape; i++)
     copyShape[i] = tensor->shape[i];
 
 

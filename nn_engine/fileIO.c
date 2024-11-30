@@ -9,7 +9,7 @@ dataPoint* readInputHelperFunc(char* buffer, int numClasses, int numParameters) 
 
     // Parse the label
     char* labelToken = strtok(newBuffer, " ");
-    int label = labelToken[0] - '0'; 
+    double label = labelToken[0] - '0'; 
 
     // Parse the input data
     double* dataX = (double*)malloc(numParameters * sizeof(double));

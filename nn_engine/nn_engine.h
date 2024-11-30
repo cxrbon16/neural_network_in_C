@@ -10,6 +10,12 @@
 #define NN_ENGINE_H
 
 typedef struct {
+    double* m;  // First moment
+    double* v;  // Second moment
+    double* grad; // Gradient (this would be your layer's gradient)
+} AdamVars;
+
+typedef struct {
     Tensor* X; // Input tensor
     Tensor* Y; // One-hot encoded label tensor
 } dataPoint;
@@ -21,6 +27,7 @@ typedef struct {
   Tensor* gradientTensor;
   double (*activationFunction)(double);
   double (*activationDerivativeFunction)(double);
+  AdamVars* adamVars; // optional, going to be used while optimization with ADAM.
 } Layer;
 
 

@@ -64,13 +64,11 @@ Tensor* forwardLayer(Layer *layer, Tensor *inputTensor){
 Tensor* forwardMLP(MLP* mlp, Tensor* inputTensor) {
     Tensor* currentTensor = inputTensor;
     for (int i = 0; i < mlp->numLayers; i++) {
-        Tensor* nextTensor = forwardLayer(mlp->layers[i], currentTensor);
-
         if (mlp->cacheActivations[i]) {
             freeTensor(mlp->cacheActivations[i]); // Free old cache
         }
+        Tensor* nextTensor = forwardLayer(mlp->layers[i], currentTensor);
         mlp->cacheActivations[i] = nextTensor; // Save new activation
-
         currentTensor = nextTensor;
     }
     return currentTensor; 
@@ -89,6 +87,7 @@ Tensor* backwardLayer(Layer* layer, Tensor* inputTensor, Tensor* outputGrad){
   Tensor* preActivation = tensorTensorMUL(inputTensor, layer->layerTensor);
   Tensor* delta = copyTensor(outputGrad);
   Tensor* activationDerivative = copyTensor(preActivation);
+
   applyFuncToTensor(activationDerivative, layer->activationDerivativeFunction);
 
   Tensor* scaledDelta = tensorTensorElementWiseMUL(delta, activationDerivative);
@@ -96,7 +95,7 @@ Tensor* backwardLayer(Layer* layer, Tensor* inputTensor, Tensor* outputGrad){
   transposeTensor(inputTensor);
   Tensor* gradientTensor = tensorTensorMUL(inputTensor, scaledDelta);
   transposeTensor(inputTensor);
-
+  //printTensor(gradientTensor);
   toFree = layer->gradientTensor; 
   layer->gradientTensor = addTensors(layer->gradientTensor, gradientTensor);
   freeTensor(gradientTensor);

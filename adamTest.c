@@ -1,6 +1,11 @@
 #include "nn_engine/nn_engine.h"
 #include <math.h>
 
+#define BETA_1 0.9
+#define BETA_2 0.999
+#define EPSILON 1e-8
+#define LEARNING_RATE 0.001
+
 Tensor* softmax(Tensor* logits) {
     // Find the maximum value in the logits
     double maxLogit = logits->elements[0];
@@ -93,8 +98,27 @@ double computeGradientsForSgd(MLP* model, dataPoint** trainData, int trainSize){
     return softmaxLoss(forwardMLP(model, trainData[index]->X), trainData[index]->Y);
 }
 
+Layer* initializeLayerWithAdam(int numNeurons, int inputSize, double (*activation)(double), double(*activationDerivative)(double)) {
+    Layer* layer = initializeLayer(numNeurons, inputSize, NULL,  activation, activationDerivative);
+    
+    // Allocate memory for Adam variables
+    layer->adamVars = malloc(sizeof(AdamVars));
+    layer->adamVars->m = malloc(sizeof(double) * layer->layerTensor->numElements);
+    layer->adamVars->v = malloc(sizeof(double) * layer->layerTensor->numElements);
+    layer->adamVars->grad = malloc(sizeof(double) * layer->layerTensor->numElements);
+    
+    // Initialize m and v to zero
+    for (int i = 0; i < layer->layerTensor->numElements; i++) {
+        layer->adamVars->m[i] = 0.0;
+        layer->adamVars->v[i] = 0.0;
+        layer->adamVars->grad[i] = 0.0;
+    }
+
+    return layer;
+}
+
 int main(){
-    srand(time(NULL));
+ srand(time(NULL));
     dataPoint** trainData;
     dataPoint** testData;
     int trainSize = 5000; 
@@ -103,11 +127,11 @@ int main(){
     testData = readInput(testSize, 785, 10, "data/test_fashion.txt");
 
 
-    Layer* firstHiddenLayer = initializeLayer(1024, 785, NULL, relu, relu_derivative);
-    Layer* secondHiddenLayer = initializeLayer(128, 1024, NULL, relu, relu_derivative);
-    Layer* thirdHiddenLayer  = initializeLayer(10, 128, NULL, relu, relu_derivative);
+    Layer* firstHiddenLayer = initializeLayerWithAdam(64, 785, relu, relu_derivative);
+    Layer* secondHiddenLayer = initializeLayerWithAdam(32, 64, relu, relu_derivative);
+    Layer* thirdHiddenLayer  = initializeLayerWithAdam(10, 32, relu, relu_derivative);
 
-    for ( int i = 0; i < firstHiddenLayer->layerTensor->numElements; i++){
+    for (int i = 0; i < firstHiddenLayer->layerTensor->numElements; i++){
         printf("%.3f\n", firstHiddenLayer->layerTensor->elements[i]);;
     }
     MLP* model = malloc(sizeof(MLP));
@@ -122,43 +146,40 @@ int main(){
     
     double totalLoss;
     int epoch = 20;
-    double alpha = 0.005;
+    double alpha = 0.05;
     Tensor* toFree;
 
-    Tensor* output = forwardMLP(model, trainData[0]->X);
-    printTensor(output);
-    Tensor* lossGradient = computeLossGradient(output, trainData[0]->Y, model->costDerivativeFunction);
-    printf("\n Loss gradients: \n");
-    printTensor(lossGradient);
-   // printf("\n preactivation values: \n");
-   // printTensor(forwardLayer(firstHiddenLayer, trainData[0]->X));
-   // printf("\n Hidden gradients: \n");
-   // computeGradients(model, trainData[0]->X, trainData[0]->Y);
-   // printTensor(firstHiddenLayer->gradientTensor);
-    for(int iterateNum = 0; iterateNum < epoch * trainSize; iterateNum++){
-        totalLoss = computeGradientsForSgd(model, trainData, trainSize);
+    for (int iterateNum = 0; iterateNum < epoch * trainSize; iterateNum++) {
+    totalLoss = computeGradientsForSgd(model, trainData, trainSize);
+    /*
+    for (int layerNo = 0; layerNo < model->numLayers; layerNo++) {
+        Layer* layer = model->layers[layerNo];
+        AdamVars* adamVars = layer->adamVars;
 
-        for(int layerNo = 0; layerNo < model->numLayers; layerNo++){
-            Layer* layer = model->layers[layerNo];
-            // scalarTensorMUL(layer->gradientTensor, -1.0/trainSize); // GD
-            scalarTensorMUL(layer->gradientTensor, -1.0); // SGD
-            //printf("Layer%d \n \n: ", layerNo+1);
-            //printTensor(layer->gradientTensor);
-            scalarTensorMUL(layer->gradientTensor, alpha);
+        // Update m and v for Adam
+        for (int i = 0; i < layer->layerTensor->numElements; i++) {
+            adamVars->grad[i] = layer->gradientTensor->elements[i];
+
+            // Update m and v using the gradient
+            adamVars->m[i] = BETA_1 * adamVars->m[i] + (1 - BETA_1) * adamVars->grad[i];
+            adamVars->v[i] = BETA_2 * adamVars->v[i] + (1 - BETA_2) * adamVars->grad[i] * adamVars->grad[i];
             
-            Tensor* toFree = layer->layerTensor;
-            layer->layerTensor = addTensors(layer->layerTensor, layer->gradientTensor);
-            freeTensor(toFree);
-            zeroGradients(layer);
-        }
+            // Bias correction
+            double mHat = adamVars->m[i] / (1 - pow(BETA_1, iterateNum + 1));
+            double vHat = adamVars->v[i] / (1 - pow(BETA_2, iterateNum + 1));
 
-        if(iterateNum % 1  == 0){
-            totalLoss = (double) totalLoss * (1.0);
-            printf("Epoch %d - Cost: %f - Valid. Loss: %f\n", iterateNum, totalLoss, calculateValidationLoss(testData, model, softmaxLoss, testSize));
-
-            Tensor* output = forwardMLP(model, trainData[iterateNum/trainSize]->X);
-            output = softmax(output);
-            printTensor(output);
+            // Update weights with Adam
+            layer->layerTensor->elements[i] -= LEARNING_RATE * mHat / (sqrt(vHat) + EPSILON);
         }
+        
+        zeroGradients(layer);
     }
+    */
+   /*
+    if (iterateNum % trainSize == 0) {
+        totalLoss = (double)totalLoss * (1.0);
+        printf("Epoch %d - Cost: %f - Valid. Loss: %f\n", iterateNum, totalLoss, calculateValidationLoss(testData, model, softmaxLoss, testSize));
+    }
+    */
+}
 }
